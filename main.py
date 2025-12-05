@@ -1,5 +1,6 @@
 from read_input import read_input
-from GivenMethod import fobj,metaheuristicVNS,metaheuristicRS, metaheuristicRSRAPID  # importe la VNS et fobj
+from GivenMethod import fobj,metaheuristicVNS,metaheuristicRS, metaheuristicRS2  # importe la VNS et fobj
+from test import metaheuristicRStest
 import time
 
 
@@ -38,7 +39,14 @@ print("\n--- Lancement du RS ---")
 
 start_timeRS = time.time()          
 
-bestW, bestH = metaheuristicRS(X, r, LW, UW, LH, UH,60) #adapter le temps ici
+# bestW, bestH = metaheuristicRStest(X, r, LW, UW, LH, UH) #adapter le temps ici
+
+bestW, bestH = metaheuristicRStest(
+    X, r, LW, UW, LH, UH,
+    time_limit=5,              
+    restart_guided_prob=0.7,
+    noise_rate_W=0.05,
+    noise_rate_H=0.05)
 
 end_timeRS = time.time()            
 elapsedRS = end_timeRS - start_timeRS   # durée totale en secondes
