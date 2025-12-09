@@ -1,0 +1,19 @@
+python3 main.py --in input.txt --out output.txt --k_max 5 --max_ls_iters 50 --moves_per_iter 2000 --max_no_improv 20 --seed 42
+
+20x20
+--k_max 5 --max_ls_iters 50 --moves_per_iter 2000 --time_limit 3 --seed 42
+
+
+python3 mainVNS.py --in input.txt --out output.txt 
+  --k_max 5 --max_ls_iters 60 --moves_per_iter 2000 
+  --max_no_improv 20 --time_limit 10 --seed 42
+
+
+  20x20 15 SECONDES
+  python3 .\mainVNS.py --in input.txt --out output.txt `
+  --k_max 5 --max_ls_iters 80 --moves_per_iter 2400 `
+  --max_no_improv 20 --time_limit 15 --seed 42
+
+
+  20x20 f=6
+  python3 mainVNS.py --in input.txt --out output.txt --k_max 5 --max_ls_iters 100 --moves_per_iter 2000 --max_no_improv 25 --seed 42 --time_limit 30
