@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import matplotlib.pyplot as plt
 
 
 # -----------------------------
@@ -110,7 +111,7 @@ def tabu_search_fact_in_z(
         rng = np.random.default_rng()
 
     m, n = X.shape
-
+    history = []
     # -------- Initialisation ----------
     if use_svd_init:
         W, H = smart_init_svd(X, r, LW, UW, LH, UH)
@@ -132,7 +133,6 @@ def tabu_search_fact_in_z(
         print(f"[Tabu] Début — f = {f_curr}")
 
     iter_since_best = 0
-
     # -------- Boucle principale ----------
     for it in range(1, max_iter + 1):
 
@@ -179,6 +179,7 @@ def tabu_search_fact_in_z(
                 if tabu_until_H[k, j] > it and new_f >= best_f:
                     continue
 
+
                 if best_move is None or new_f < best_move_newf:
                     best_move = ("H", k, j, delta)
                     best_move_df = df
@@ -210,6 +211,11 @@ def tabu_search_fact_in_z(
             tabu_until_H[k, j] = it + tabu_tenure
 
         f_curr += best_move_df
+        if f_curr == 0:
+            if verbose:
+                print("[Tabu] Solution optimale trouvée (f = 0), arrêt immédiat.")
+            history.append(f_curr)
+            return W, H, f_curr, history
 
         # ---------- Mise à jour du meilleur ----------
         if f_curr < best_f:
@@ -218,6 +224,8 @@ def tabu_search_fact_in_z(
             iter_since_best = 0
         else:
             iter_since_best += 1
+
+        history.append(f_curr)
 
         # ---------- Affichage ----------
         if verbose and it % print_every == 0:
@@ -232,7 +240,7 @@ def tabu_search_fact_in_z(
     if verbose:
         print(f"[Tabu] Fin — Best f = {best_f}")
 
-    return best_W, best_H, best_f
+    return best_W, best_H, best_f,history
 
 
 
@@ -248,30 +256,30 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
     rng = np.random.default_rng(42)
 
     if big_instance:
-        n_restarts = 5          #changer comme on veut pour boucler plusieurs fois l'algo et prendre la meilleure version
-        max_iter = 2000
+        n_restarts = 1  #adapter si on veut comparer plusieurs résultats
+        max_iter = 2000 #réduire si trop lent
         tabu_tenure = 20
-        max_no_improve = 500
+        max_no_improve = 500 #essai max sans amélio
         nW = 800
         nH = 800
-        use_svd_init = True     # important !
+        use_svd_init = True
     else:   
-        n_restarts = 5
-        max_iter = 5000
+        n_restarts = 1 #adapter si on veut comparer plusieurs résultats
+        max_iter = 5000 #réduire si trop lent
         tabu_tenure = 10
-        max_no_improve = 1600
+        max_no_improve = 800 #essai max sans amélio
         nW = 400
         nH = 400
-        use_svd_init = False  #true ou false, au choix
+        use_svd_init = False
 
     best_global_W = best_global_H = None
     best_global_f = None
+    best_history = None   # <--- historique du meilleur restart
 
     for s in range(n_restarts):
-        # on change la graine à chaque restart
         rng_s = np.random.default_rng(42 + s)
 
-        W_s, H_s, f_s = tabu_search_fact_in_z(
+        W_s, H_s, f_s, hist_s = tabu_search_fact_in_z(
             X,
             r,
             LW,
@@ -282,19 +290,21 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
             tabu_tenure=tabu_tenure,
             max_no_improve=max_no_improve,
             rng=rng_s,
-            verbose=True, #permet d'avoir des infos dans le terminal
+            verbose=True,
             print_every=200,
             n_candidates_W=nW,
             n_candidates_H=nH,
-            use_svd_init=(use_svd_init and s == 0),  # SVD pour le 1er run, aléatoire ensuite
+            use_svd_init=(use_svd_init and s == 0),
         )
 
         if best_global_f is None or f_s < best_global_f:
             best_global_f = f_s
             best_global_W, best_global_H = W_s, H_s
+            best_history = hist_s          # <--- on garde l'historique associé
             print(f"[metaheuristic] restart {s} → nouvelle meilleure f = {best_global_f}")
 
-    return best_global_W, best_global_H
+    return best_global_W, best_global_H, best_history
+
 
 
 # -----------------------------
@@ -341,10 +351,19 @@ if __name__ == "__main__":
     big = (m * n > 10000)
 
     start = time.time()
-    W_best, H_best = metaheuristic(X, r, LW, UW, LH, UH, big_instance=big)
+    W_best, H_best, history = metaheuristic(X, r, LW, UW, LH, UH, big_instance=big)
     end = time.time()
 
     f_best = fobj(X, W_best, H_best)
     print("Meilleure valeur trouvée :", f_best)
     print(f"Temps d'exécution : {end - start:.4f} secondes")
     write_solution("output_grosse.txt", f_best, W_best, H_best)
+
+    # ---- Plot de l'historique ----
+    plt.figure(figsize=(10, 4))
+    plt.plot(history)
+    plt.title("Évolution de l’erreur f au fil des itérations")
+    plt.xlabel("Itérations")
+    plt.ylabel("f(X - W H)^2")
+    plt.grid(True)
+    plt.show()
