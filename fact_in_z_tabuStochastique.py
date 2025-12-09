@@ -248,7 +248,7 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
     rng = np.random.default_rng(42)
 
     if big_instance:
-        n_restarts = 5          # tu peux tester 5, 10...
+        n_restarts = 5          #changer comme on veut pour boucler plusieurs fois l'algo et prendre la meilleure version
         max_iter = 2000
         tabu_tenure = 20
         max_no_improve = 500
@@ -262,7 +262,7 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
         max_no_improve = 1600
         nW = 400
         nH = 400
-        use_svd_init = False
+        use_svd_init = False  #true ou false, au choix
 
     best_global_W = best_global_H = None
     best_global_f = None
@@ -282,7 +282,7 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
             tabu_tenure=tabu_tenure,
             max_no_improve=max_no_improve,
             rng=rng_s,
-            verbose=True,
+            verbose=True, #permet d'avoir des infos dans le terminal
             print_every=200,
             n_candidates_W=nW,
             n_candidates_H=nH,
@@ -320,10 +320,6 @@ def write_solution(path, fval, W, H):
 
 
 def smart_init_svd(X, r, LW, UW, LH, UH):
-    """
-    Initialisation intelligente via SVD tronquée.
-    On projette ensuite dans les bornes entières.
-    """
     U, s, Vt = np.linalg.svd(X, full_matrices=False)
 
     U_r = U[:, :r]
