@@ -56,7 +56,7 @@ a) max_iter
 nombre maximal d'itérations
 
 plus grand = meilleure solution, mais plus lent
-Valeur typicale : 8000 à 20000
+Valeur classique : 8000 à 20000
 
 b) tabu_tenure
 

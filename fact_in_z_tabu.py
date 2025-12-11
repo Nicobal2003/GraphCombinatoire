@@ -1,10 +1,7 @@
 import numpy as np
 import time
 
-
-# -----------------------------
-#  Fonction objectif
-# -----------------------------
+#  F objectif
 def fobj(X, W, H):
     """
     Retourne ||X - W H||_F^2.
@@ -13,9 +10,8 @@ def fobj(X, W, H):
     return int((R ** 2).sum())
 
 
-# -----------------------------
-#  Vérification de faisabilité
-# -----------------------------
+# Vérification de faisabilité
+
 def solution_is_feasible(W, H, X, r, LW, UW, LH, UH):
     """
     Vérifie :
@@ -45,9 +41,8 @@ def solution_is_feasible(W, H, X, r, LW, UW, LH, UH):
     return True
 
 
-# -----------------------------
-#  Outils incrémentaux
-# -----------------------------
+#  pour incrémenté
+
 def compute_state(X, W, H):
     """
     Calcule Y = W H, R = X - Y, f = ||R||^2.
@@ -80,9 +75,9 @@ def delta_flip_H(k, j, delta, R, W):
     return int((new_col ** 2 - col_R ** 2).sum())
 
 
-# -----------------------------
+
 #  Recherche tabou principale
-# -----------------------------
+
 def tabu_search_fact_in_z(
     X,
     r,
@@ -105,7 +100,7 @@ def tabu_search_fact_in_z(
 
     m, n = X.shape
 
-    # Initialisation aléatoire dans les bornes
+    # Init en respectant les bornes
     W = rng.integers(LW, UW + 1, size=(m, r))
     H = rng.integers(LH, UH + 1, size=(r, n))
 
@@ -113,10 +108,10 @@ def tabu_search_fact_in_z(
     best_W, best_H = W.copy(), H.copy()
     best_f = f_curr
 
-    # Historique de f
+    # Historique
     history = [f_curr]
 
-    # Liste tabou (dates d'expiration)
+    # Liste tabou 
     tabu_until_W = np.zeros((m, r), dtype=int)
     tabu_until_H = np.zeros((r, n), dtype=int)
 
@@ -127,13 +122,13 @@ def tabu_search_fact_in_z(
         best_move_df = None
         best_move_newf = None
 
-        # On parcourt les indices dans un ordre aléatoire (brise les ex aequo)
+        # On parcourt les indices dans un ordre aléatoire
         indicesW = [(i, k) for i in range(m) for k in range(r)]
         rng.shuffle(indicesW)
         indicesH = [(k, j) for k in range(r) for j in range(n)]
         rng.shuffle(indicesH)
 
-        # --- Voisinage sur W ---
+        # voisinage sur W 
         for (i, k) in indicesW:
             val = W[i, k]
             for delta in (-1, 1):
@@ -145,7 +140,7 @@ def tabu_search_fact_in_z(
                 new_f = f_curr + df
 
                 is_tabu = tabu_until_W[i, k] > it
-                # Aspiration : autoriser si améliore la meilleure solution globale
+
                 if is_tabu and new_f >= best_f:
                     continue
 
@@ -154,7 +149,7 @@ def tabu_search_fact_in_z(
                     best_move_df = df
                     best_move_newf = new_f
 
-        # --- Voisinage sur H ---
+        # voisinage sur H
         for (k, j) in indicesH:
             val = H[k, j]
             for delta in (-1, 1):
@@ -175,12 +170,11 @@ def tabu_search_fact_in_z(
                     best_move_newf = new_f
 
         if best_move is None:
-            # Aucun mouvement admissible (cas pathologique)
             if verbose:
-                print("Aucun mouvement admissible à l’itération", it)
+                print("Aucun mouvement admissible à l itération", it)
             break
 
-        # --- Appliquer le meilleur mouvement ---
+        # meilleur mouvement
         kind, a, b, delta = best_move
 
         if kind == "W":
@@ -216,7 +210,7 @@ def tabu_search_fact_in_z(
             best_W, best_H = W.copy(), H.copy()
             break
 
-        # Mise à jour du meilleur trouvé
+        # maj du meilleur trouvé
         if f_curr < best_f:
             best_f = f_curr
             best_W, best_H = W.copy(), H.copy()
@@ -237,9 +231,7 @@ def tabu_search_fact_in_z(
     return best_W, best_H, best_f, history
 
 
-# -----------------------------
 #  Interface demandée (multi-start)
-# -----------------------------
 def metaheuristicTabu(X, r, LW, UW, LH, UH, n_restarts=10): #multi start a changer ici
     """
     Fonction appelée dans le projet : lance la recherche tabou
@@ -278,38 +270,3 @@ def metaheuristicTabu(X, r, LW, UW, LH, UH, n_restarts=10): #multi start a chang
             print(f" → nouvelle meilleure solution globale: f = {best_global_f}")
 
     return best_global_W, best_global_H, best_history
-
-
-# -----------------------------
-#  Lecture / écriture fichier
-# -----------------------------
-def read_instance(path):
-    with open(path, "r") as f:
-        lines = f.read().strip().splitlines()
-    m, n, r, LW, UW, LH, UH = map(int, lines[0].split())
-    X = np.array([[int(x) for x in ln.split()] for ln in lines[1:]])
-    return X, m, n, r, LW, UW, LH, UH
-
-
-def write_solution(path, fval, W, H):
-    lines = []
-    lines.append(str(fval))
-    for i in range(W.shape[0]):
-        lines.append(" ".join(str(int(v)) for v in W[i]))
-    for i in range(H.shape[0]):
-        lines.append(" ".join(str(int(v)) for v in H[i]))
-    with open(path, "w") as f:
-        f.write("\n".join(lines))
-
-
-if __name__ == "__main__":
-    # Exemple d'utilisation sur input.txt
-    X, m, n, r, LW, UW, LH, UH = read_instance("input.txt")
-    start = time.time()
-    W_best, H_best, history = metaheuristic(X, r, LW, UW, LH, UH, n_restarts=5)
-    end = time.time()
-    f_best = fobj(X, W_best, H_best)
-    print("Meilleure valeur trouvée (multi-start) :", f_best)
-    print(f"Temps d'exécution : {end - start:.4f} secondes")
-    write_solution("output.txt", f_best, W_best, H_best)
-
