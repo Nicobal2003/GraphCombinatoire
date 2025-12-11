@@ -84,7 +84,7 @@ def delta_flip_H(k, j, delta, R, W):
 # -----------------------------
 #  Recherche tabou stochastique
 # -----------------------------
-def tabu_search_fact_in_z(
+def tabuSto_search_fact_in_z(
     X,
     r,
     LW,
@@ -247,19 +247,19 @@ def tabu_search_fact_in_z(
 # -----------------------------
 #  Interface demandée
 # -----------------------------
-def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
+def metaheuristicTabuSto(X, r, LW, UW, LH, UH, big_instance=False):
     """
     Version multi-start :
     - petites matrices : un seul Tabu suffit
     - grandes matrices : plusieurs Tabu stochastiques, on garde le meilleur
     """
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng()
 
     if big_instance:
         n_restarts = 1  #adapter si on veut comparer plusieurs résultats
-        max_iter = 2000 #réduire si trop lent
+        max_iter = 20000 #réduire si trop lent
         tabu_tenure = 20
-        max_no_improve = 500 #essai max sans amélio
+        max_no_improve = 1000 #essai max sans amélio
         nW = 800
         nH = 800
         use_svd_init = True
@@ -279,7 +279,7 @@ def metaheuristic(X, r, LW, UW, LH, UH, big_instance=False):
     for s in range(n_restarts):
         rng_s = np.random.default_rng(42 + s)
 
-        W_s, H_s, f_s, hist_s = tabu_search_fact_in_z(
+        W_s, H_s, f_s, hist_s = tabuSto_search_fact_in_z(
             X,
             r,
             LW,

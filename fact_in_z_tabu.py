@@ -90,14 +90,15 @@ def tabu_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=5000,
+    max_iter=7000,
     tabu_tenure=10,
-    max_no_improve=500,
+    max_no_improve=1000,
     rng=None,
     verbose=False,
 ):
     """
     Recherche tabou pour FactInZ.
+    Retourne aussi l'historique des valeurs de f.
     """
     if rng is None:
         rng = np.random.default_rng()
@@ -111,6 +112,9 @@ def tabu_search_fact_in_z(
     Y, R, f_curr = compute_state(X, W, H)
     best_W, best_H = W.copy(), H.copy()
     best_f = f_curr
+
+    # Historique de f
+    history = [f_curr]
 
     # Liste tabou (dates d'expiration)
     tabu_until_W = np.zeros((m, r), dtype=int)
@@ -202,6 +206,15 @@ def tabu_search_fact_in_z(
             tabu_until_H[k, j] = it + tabu_tenure
 
         f_curr += best_move_df
+        history.append(f_curr)
+
+        # Arrêt immédiat si f = 0 (optionnel mais pratique)
+        if f_curr == 0:
+            if verbose:
+                print(f"it={it}, f=0 → solution optimale trouvée, arrêt.")
+            best_f = 0
+            best_W, best_H = W.copy(), H.copy()
+            break
 
         # Mise à jour du meilleur trouvé
         if f_curr < best_f:
@@ -221,32 +234,50 @@ def tabu_search_fact_in_z(
                 )
             break
 
-    return best_W, best_H, best_f
+    return best_W, best_H, best_f, history
 
 
 # -----------------------------
-#  Interface demandée
+#  Interface demandée (multi-start)
 # -----------------------------
-def metaheuristic(X, r, LW, UW, LH, UH):
+def metaheuristicTabu(X, r, LW, UW, LH, UH, n_restarts=10): #multi start a changer ici
     """
     Fonction appelée dans le projet : lance la recherche tabou
-    et renvoie (W_best, H_best).
+    en mode multi-start et renvoie (W_best, H_best, history_best).
     """
-    rng = np.random.default_rng(42)  # graine fixe pour reproductibilité
-    W_best, H_best, f_best = tabu_search_fact_in_z(
-        X,
-        r,
-        LW,
-        UW,
-        LH,
-        UH,
-        max_iter=1000,
-        tabu_tenure=10,
-        max_no_improve=200,
-        rng=rng,
-        verbose=False,
-    )
-    return W_best, H_best
+    best_global_W = None
+    best_global_H = None
+    best_global_f = None
+    best_history = None
+
+    for s in range(n_restarts):
+        # Nouveau générateur aléatoire à chaque restart (pas de graine fixe)
+        rng = np.random.default_rng()
+
+        W_s, H_s, f_s, hist_s = tabu_search_fact_in_z(
+            X,
+            r,
+            LW,
+            UW,
+            LH,
+            UH,
+            max_iter=3000,
+            tabu_tenure=10,
+            max_no_improve=1000,
+            rng=rng,
+            verbose=False,
+        )
+
+        print(f"[multi-start] restart {s}: f = {f_s}")
+
+        if best_global_f is None or f_s < best_global_f:
+            best_global_f = f_s
+            best_global_W = W_s
+            best_global_H = H_s
+            best_history = hist_s
+            print(f" → nouvelle meilleure solution globale: f = {best_global_f}")
+
+    return best_global_W, best_global_H, best_history
 
 
 # -----------------------------
@@ -274,10 +305,11 @@ def write_solution(path, fval, W, H):
 if __name__ == "__main__":
     # Exemple d'utilisation sur input.txt
     X, m, n, r, LW, UW, LH, UH = read_instance("input.txt")
-    start = time.time() 
-    W_best, H_best = metaheuristic(X, r, LW, UW, LH, UH)
+    start = time.time()
+    W_best, H_best, history = metaheuristic(X, r, LW, UW, LH, UH, n_restarts=5)
     end = time.time()
     f_best = fobj(X, W_best, H_best)
-    print("Meilleure valeur trouvée :", f_best)
+    print("Meilleure valeur trouvée (multi-start) :", f_best)
     print(f"Temps d'exécution : {end - start:.4f} secondes")
     write_solution("output.txt", f_best, W_best, H_best)
+
