@@ -90,7 +90,7 @@ def tabu_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=7000,
+    max_iter=4000,
     tabu_tenure=10,
     max_no_improve=1000,
     rng=None,

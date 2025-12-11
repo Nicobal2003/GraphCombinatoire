@@ -89,7 +89,7 @@ def tabuSto_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=20000,
+    max_iter=8000, #changer ici pour gain de temps
     tabu_tenure=20,
     max_no_improve=1000,
     rng=None,
@@ -111,6 +111,7 @@ def tabuSto_search_fact_in_z(
 
     m, n = X.shape
     history = []
+    startTime = time.time()
 
     # Init
     if use_svd_init:
@@ -231,7 +232,8 @@ def tabuSto_search_fact_in_z(
 
         # print pour suivre
         if verbose and it % print_every == 0:
-            print(f"[Tabu] it={it}, f={f_curr}, best={best_f}")
+            elapsed = time.time() - startTime
+            print(f"[Tabu] it={it}, f={f_curr}, best={best_f}, temps = {elapsed:.2f} s")
 
         # condition d'arret 
         if iter_since_best >= max_no_improve:
@@ -255,7 +257,6 @@ def metaheuristicTabuSto(X, r, LW, UW, LH, UH, n_restarts=1):
 
     for s in range(n_restarts):
         rng_s = np.random.default_rng()  
-
         W_s, H_s, f_s, hist_s = tabuSto_search_fact_in_z(
             X,
             r,
@@ -290,26 +291,3 @@ def smart_init_svd(X, r, LW, UW, LH, UH):
     H_int = np.clip(np.rint(H_real), LH, UH).astype(int)
 
     return W_int, H_int
-
-
-if __name__ == "__main__":
-    X, m, n, r, LW, UW, LH, UH = read_instance("input.txt")
-
-    start = time.time()
-    # n_restarts peut être augmenté si tu veux plusieurs essais
-    W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH, n_restarts=1)
-    end = time.time()
-
-    f_best = fobj(X, W_best, H_best)
-    print("Meilleur valeur trouvée :", f_best)
-    print(f"Temps d'execution : {end - start:.4f} secondes")
-    write_solution("output_grosse.txt", f_best, W_best, H_best)
-
-    # ---- Plot de l'historique ----
-    plt.figure(figsize=(10, 4))
-    plt.plot(history)
-    plt.title("Évolution de l erreur f au fil des itérations")
-    plt.xlabel("Itérations")
-    plt.ylabel("f(X - W H)^2")
-    plt.grid(True)
-    plt.show()

@@ -45,10 +45,10 @@ if __name__ == "__main__":
 
     if is_big:
         # GROSSE MATRICE > Tabu stochastique (multi start si paramétré)
-        W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH)
+        W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH, n_restarts=1)
     else:
         # PETITE MATRICE > Tabu complet (non stochastique et multi start)
-        W_best, H_best, history = metaheuristicTabu(X, r, LW, UW, LH, UH)
+        W_best, H_best, history = metaheuristicTabu(X, r, LW, UW, LH, UH, n_restarts=5)
 
     end = time.time()
 
