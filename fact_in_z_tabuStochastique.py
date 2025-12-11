@@ -3,9 +3,8 @@ import time
 import matplotlib.pyplot as plt
 
 
-# -----------------------------
-#  Fonction objectif
-# -----------------------------
+
+#  Fonction objectif donnée dans pdf
 def fobj(X, W, H):
     """
     Retourne ||X - W H||_F^2.
@@ -14,9 +13,9 @@ def fobj(X, W, H):
     return int((R ** 2).sum())
 
 
-# -----------------------------
-#  Vérification de faisabilité
-# -----------------------------
+
+# Vérif de faisabilité donnée dans pdf
+
 def solution_is_feasible(W, H, X, r, LW, UW, LH, UH):
     """
     Vérifie :
@@ -46,9 +45,8 @@ def solution_is_feasible(W, H, X, r, LW, UW, LH, UH):
     return True
 
 
-# -----------------------------
-#  Outils incrémentaux
-# -----------------------------
+
+#  utile pour incrémenter
 def compute_state(X, W, H):
     """
     Calcule Y = W H, R = X - Y, f = ||R||^2.
@@ -81,9 +79,9 @@ def delta_flip_H(k, j, delta, R, W):
     return int((new_col ** 2 - col_R ** 2).sum())
 
 
-# -----------------------------
-#  Recherche tabou stochastique
-# -----------------------------
+
+#  Recherche tabou stochastique, grosse matrice uniquement
+
 def tabuSto_search_fact_in_z(
     X,
     r,
@@ -91,28 +89,30 @@ def tabuSto_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=5000,
-    tabu_tenure=10,
-    max_no_improve=500,
+    max_iter=20000,
+    tabu_tenure=20,
+    max_no_improve=1000,
     rng=None,
     verbose=False,
-    print_every=100,
-    n_candidates_W=1000,
-    n_candidates_H=1000,
-    use_svd_init=False,
+    print_every=200,
+    n_candidates_W=800,
+    n_candidates_H=800,
+    use_svd_init=True,
 ):
     """
-    Recherche tabou stochastique pour FactInZ.
-    - explore seulement un sous-ensemble aléatoire du voisinage
-    - inclut un affichage (print_every)
-    - peut utiliser une initialisation SVD via use_svd_init=True
+    Recherche tabou stochastique pour FactInZ,
+    adaptée aux grosses matrices.
+    - explore un sous-ensemble aléatoire du voisinage
+    - peut utiliser une initialisation SVD (use_svd_init=True)
+    - renvoie aussi l'historique des valeurs f
     """
     if rng is None:
         rng = np.random.default_rng()
 
     m, n = X.shape
     history = []
-    # -------- Initialisation ----------
+
+    # Init
     if use_svd_init:
         W, H = smart_init_svd(X, r, LW, UW, LH, UH)
     else:
@@ -133,14 +133,15 @@ def tabuSto_search_fact_in_z(
         print(f"[Tabu] Début — f = {f_curr}")
 
     iter_since_best = 0
-    # -------- Boucle principale ----------
+
+    #  Boucle principale 
     for it in range(1, max_iter + 1):
 
         best_move = None
         best_move_df = None
         best_move_newf = None
 
-        # -------- Voisinage stochastique W ----------
+        # voisinage stochastique W 
         for _ in range(min(n_candidates_W, total_W)):
             i = rng.integers(0, m)
             k = rng.integers(0, r)
@@ -162,7 +163,7 @@ def tabuSto_search_fact_in_z(
                     best_move_df = df
                     best_move_newf = new_f
 
-        # -------- Voisinage stochastique H ----------
+        #voisinage stochastique H 
         for _ in range(min(n_candidates_H, total_H)):
             k = rng.integers(0, r)
             j = rng.integers(0, n)
@@ -179,19 +180,18 @@ def tabuSto_search_fact_in_z(
                 if tabu_until_H[k, j] > it and new_f >= best_f:
                     continue
 
-
                 if best_move is None or new_f < best_move_newf:
                     best_move = ("H", k, j, delta)
                     best_move_df = df
                     best_move_newf = new_f
 
-        # ---------- Aucun mouvement ? ----------
+        # Aucun mouvement 
         if best_move is None:
             if verbose:
                 print("[Tabu] Aucun mouvement admissible → arrêt")
             break
 
-        # ---------- Appliquer le meilleur mouvement ----------
+        # appliquer le meilleur mouvement
         kind, a, b, delta = best_move
 
         if kind == "W":
@@ -211,13 +211,15 @@ def tabuSto_search_fact_in_z(
             tabu_until_H[k, j] = it + tabu_tenure
 
         f_curr += best_move_df
+
+        # arrêt optimal
         if f_curr == 0:
             if verbose:
                 print("[Tabu] Solution optimale trouvée (f = 0), arrêt immédiat.")
             history.append(f_curr)
             return W, H, f_curr, history
 
-        # ---------- Mise à jour du meilleur ----------
+        # maj si meilleur
         if f_curr < best_f:
             best_f = f_curr
             best_W, best_H = W.copy(), H.copy()
@@ -227,11 +229,11 @@ def tabuSto_search_fact_in_z(
 
         history.append(f_curr)
 
-        # ---------- Affichage ----------
+        # print pour suivre
         if verbose and it % print_every == 0:
             print(f"[Tabu] it={it}, f={f_curr}, best={best_f}")
 
-        # ---------- Condition d'arrêt ----------
+        # condition d'arret 
         if iter_since_best >= max_no_improve:
             if verbose:
                 print(f"[Tabu] Arrêt — {max_no_improve} itérations sans amélioration.")
@@ -240,44 +242,19 @@ def tabuSto_search_fact_in_z(
     if verbose:
         print(f"[Tabu] Fin — Best f = {best_f}")
 
-    return best_W, best_H, best_f,history
+    return best_W, best_H, best_f, history
 
 
 
-# -----------------------------
-#  Interface demandée
-# -----------------------------
-def metaheuristicTabuSto(X, r, LW, UW, LH, UH, big_instance=False):
-    """
-    Version multi-start :
-    - petites matrices : un seul Tabu suffit
-    - grandes matrices : plusieurs Tabu stochastiques, on garde le meilleur
-    """
-    rng = np.random.default_rng()
+# Tabu stochastique multi-start (grosse instance)
 
-    if big_instance:
-        n_restarts = 1  #adapter si on veut comparer plusieurs résultats
-        max_iter = 20000 #réduire si trop lent
-        tabu_tenure = 20
-        max_no_improve = 1000 #essai max sans amélio
-        nW = 800
-        nH = 800
-        use_svd_init = True
-    else:   
-        n_restarts = 1 #adapter si on veut comparer plusieurs résultats
-        max_iter = 5000 #réduire si trop lent
-        tabu_tenure = 10
-        max_no_improve = 800 #essai max sans amélio
-        nW = 400
-        nH = 400
-        use_svd_init = False
-
+def metaheuristicTabuSto(X, r, LW, UW, LH, UH, n_restarts=1):
     best_global_W = best_global_H = None
     best_global_f = None
-    best_history = None   # <--- historique du meilleur restart
+    best_history = None
 
     for s in range(n_restarts):
-        rng_s = np.random.default_rng(42 + s)
+        rng_s = np.random.default_rng()  
 
         W_s, H_s, f_s, hist_s = tabuSto_search_fact_in_z(
             X,
@@ -286,47 +263,17 @@ def metaheuristicTabuSto(X, r, LW, UW, LH, UH, big_instance=False):
             UW,
             LH,
             UH,
-            max_iter=max_iter,
-            tabu_tenure=tabu_tenure,
-            max_no_improve=max_no_improve,
             rng=rng_s,
             verbose=True,
-            print_every=200,
-            n_candidates_W=nW,
-            n_candidates_H=nH,
-            use_svd_init=(use_svd_init and s == 0),
         )
 
         if best_global_f is None or f_s < best_global_f:
             best_global_f = f_s
             best_global_W, best_global_H = W_s, H_s
-            best_history = hist_s          # <--- on garde l'historique associé
+            best_history = hist_s
             print(f"[metaheuristic] restart {s} → nouvelle meilleure f = {best_global_f}")
 
     return best_global_W, best_global_H, best_history
-
-
-
-# -----------------------------
-#  Lecture / écriture fichier
-# -----------------------------
-def read_instance(path):
-    with open(path, "r") as f:
-        lines = f.read().strip().splitlines()
-    m, n, r, LW, UW, LH, UH = map(int, lines[0].split())
-    X = np.array([[int(x) for x in ln.split()] for ln in lines[1:]])
-    return X, m, n, r, LW, UW, LH, UH
-
-
-def write_solution(path, fval, W, H):
-    lines = []
-    lines.append(str(fval))
-    for i in range(W.shape[0]):
-        lines.append(" ".join(str(int(v)) for v in W[i]))
-    for i in range(H.shape[0]):
-        lines.append(" ".join(str(int(v)) for v in H[i]))
-    with open(path, "w") as f:
-        f.write("\n".join(lines))
 
 
 def smart_init_svd(X, r, LW, UW, LH, UH):
@@ -348,21 +295,20 @@ def smart_init_svd(X, r, LW, UW, LH, UH):
 if __name__ == "__main__":
     X, m, n, r, LW, UW, LH, UH = read_instance("input.txt")
 
-    big = (m * n > 10000)
-
     start = time.time()
-    W_best, H_best, history = metaheuristic(X, r, LW, UW, LH, UH, big_instance=big)
+    # n_restarts peut être augmenté si tu veux plusieurs essais
+    W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH, n_restarts=1)
     end = time.time()
 
     f_best = fobj(X, W_best, H_best)
-    print("Meilleure valeur trouvée :", f_best)
-    print(f"Temps d'exécution : {end - start:.4f} secondes")
+    print("Meilleur valeur trouvée :", f_best)
+    print(f"Temps d'execution : {end - start:.4f} secondes")
     write_solution("output_grosse.txt", f_best, W_best, H_best)
 
     # ---- Plot de l'historique ----
     plt.figure(figsize=(10, 4))
     plt.plot(history)
-    plt.title("Évolution de l’erreur f au fil des itérations")
+    plt.title("Évolution de l erreur f au fil des itérations")
     plt.xlabel("Itérations")
     plt.ylabel("f(X - W H)^2")
     plt.grid(True)

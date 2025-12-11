@@ -11,6 +11,7 @@ def fobj(X, W, H):
     R = X - W @ H
     return int((R ** 2).sum())
 
+#lire input
 def read_instance(path):
     with open(path, "r") as f:
         lines = f.read().strip().splitlines()
@@ -18,6 +19,7 @@ def read_instance(path):
     X = np.array([[int(x) for x in ln.split()] for ln in lines[1:]])
     return X, m, n, r, LW, UW, LH, UH
 
+#écrire input
 def write_solution(path, fval, W, H):
     lines = []
     lines.append(str(fval))
@@ -32,9 +34,9 @@ def write_solution(path, fval, W, H):
 if __name__ == "__main__":
     X, m, n, r, LW, UW, LH, UH = read_instance("input.txt")
 
-    # critère de "grosse" matrice : tu peux ajuster le seuil
+    # critère de "grosse" matrice, a ajuster si besoin
     num_cells = m * n
-    is_big = (num_cells > 10000)   # par ex : > 10 000 cases
+    is_big = (num_cells > 10000)   #adapter ici
 
     print(f"Instance : {m} x {n}, r={r}, W in [{LW},{UW}], H in [{LH},{UH}]")
     print("Mode utilisé :", "Tabu stochastique" if is_big else "Tabu complet (non stochastique)")
@@ -42,10 +44,10 @@ if __name__ == "__main__":
     start = time.time()
 
     if is_big:
-        # GROSSE MATRICE > Tabu stochastique (multi-start si paramétré)
-        W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH, big_instance=True)
+        # GROSSE MATRICE > Tabu stochastique (multi start si paramétré)
+        W_best, H_best, history = metaheuristicTabuSto(X, r, LW, UW, LH, UH)
     else:
-        # PETITE MATRICE > Tabu complet (non stochastique)
+        # PETITE MATRICE > Tabu complet (non stochastique et multi start)
         W_best, H_best, history = metaheuristicTabu(X, r, LW, UW, LH, UH)
 
     end = time.time()
@@ -54,21 +56,20 @@ if __name__ == "__main__":
     print("Meilleure valeur trouvée :", f_best)
     print(f"Temps d'exécution : {end - start:.4f} secondes")
 
-    # nom de fichier différent selon la taille si tu veux
     out_name = "output_grosse.txt" if is_big else "output_petite.txt"
     write_solution(out_name, f_best, W_best, H_best)
 
-    # ---- Plot de l'historique ----
+    # l'historique
     plt.figure(figsize=(10, 4))
     plt.plot(history)
-    plt.title("Évolution de l’erreur f au fil des itérations")
+    plt.title("Évolution de l erreur f au fil des itérations")
     plt.xlabel("Itérations")
     plt.ylabel("f(X - W H)^2")
     plt.grid(True)
     plt.show()
 
 
-        # ---------- Visualisation de la matrice comme image ----------
+    # ---------- Visu matrice comme image ----------
     # Reconstruction approchée
     Y = W_best @ H_best
 
