@@ -1,6 +1,6 @@
 import numpy as np
 import time
-
+from fact_in_z_tabuStochastique import smart_init_svd
 #  F objectif
 def fobj(X, W, H):
     """
@@ -85,9 +85,9 @@ def tabu_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=4000,
+    max_iter=15000,
     tabu_tenure=10,
-    max_no_improve=1000,
+    max_no_improve=2000,
     rng=None,
     verbose=False,
 ):
@@ -101,8 +101,7 @@ def tabu_search_fact_in_z(
     m, n = X.shape
 
     # Init en respectant les bornes
-    W = rng.integers(LW, UW + 1, size=(m, r))
-    H = rng.integers(LH, UH + 1, size=(r, n))
+    W, H = smart_init_svd(X, r, LW, UW, LH, UH)
 
     Y, R, f_curr = compute_state(X, W, H)
     best_W, best_H = W.copy(), H.copy()

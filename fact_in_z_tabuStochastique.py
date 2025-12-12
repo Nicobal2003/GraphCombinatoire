@@ -89,11 +89,11 @@ def tabuSto_search_fact_in_z(
     UW,
     LH,
     UH,
-    max_iter=8000, #changer ici pour gain de temps
+    max_iter=28000, #changer ici pour gain de temps
     tabu_tenure=20,
-    max_no_improve=1000,
+    max_no_improve=20000,
     rng=None,
-    verbose=False,
+    verbose=False, 
     print_every=200,
     n_candidates_W=800,
     n_candidates_H=800,
